@@ -6,42 +6,56 @@ import { NetworkStatus } from "@/components/NetworkStatus";
 import { Button } from "@/components/ui/button";
 import { RefreshCwIcon } from "lucide-react";
 
-const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
+const CONTRACT_ADDRESS = "0xAc8DEF8e0ebE83c5484509638aC5Ee6e98e416C8";
 const CONTRACT_ABI = [
-  "function getAllPrices() public view returns (int256 btcPrice, int256 ethPrice, int256 linkPrice, int256 bnbPrice, int256 ltcPrice)"
+  "function getLatestPrice(string) public view returns (int)"
 ];
 
 const CRYPTO_DATA = [
   { symbol: "BTC", name: "Bitcoin" },
   { symbol: "ETH", name: "Ethereum" },
-  { symbol: "LINK", name: "Chainlink" },
-  { symbol: "BNB", name: "Binance Coin" },
-  { symbol: "LTC", name: "Litecoin" }
+  { symbol: "LINK", name: "Chainlink" }
 ];
 
 export default function Index() {
   const { toast } = useToast();
-  const [prices, setPrices] = useState<number[]>([]);
+  const [prices, setPrices] = useState<{ [key: string]: number }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [networkName, setNetworkName] = useState("");
 
-  const fetchPrices = async () => {
+  const fetchPrice = async (symbol: string, contract: ethers.Contract) => {
+    try {
+      const price = await contract.getLatestPrice(symbol);
+      console.log(`${symbol} price:`, price.toString());
+      return Number(ethers.utils.formatUnits(price, 8));
+    } catch (error) {
+      console.error(`Error fetching ${symbol} price:`, error);
+      return 0;
+    }
+  };
+
+  const fetchAllPrices = async () => {
     try {
       setIsLoading(true);
       if (!window.ethereum) throw new Error("Please install MetaMask");
       
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-      const priceData = await contract.getAllPrices();
       
-      setPrices(priceData.map((price: any) => 
-        Number(ethers.utils.formatUnits(price, 8))
-      ));
-    } catch (error) {
+      const newPrices: { [key: string]: number } = {};
+      
+      // Fetch prices sequentially to avoid any potential issues
+      for (const { symbol } of CRYPTO_DATA) {
+        const price = await fetchPrice(symbol, contract);
+        newPrices[symbol] = price;
+      }
+      
+      setPrices(newPrices);
+    } catch (error: any) {
       toast({
         title: "Error fetching prices",
-        description: "Please make sure you're connected to Sepolia network",
+        description: error.message || "Please make sure you're connected to Sepolia network",
         variant: "destructive",
       });
     } finally {
@@ -65,7 +79,7 @@ export default function Index() {
 
       setIsConnected(true);
       setNetworkName("Sepolia");
-      fetchPrices();
+      fetchAllPrices();
     } catch (error: any) {
       toast({
         title: "Connection Error",
@@ -77,7 +91,7 @@ export default function Index() {
 
   useEffect(() => {
     connectWallet();
-    const interval = setInterval(fetchPrices, 30000); // Refresh every 30 seconds
+    const interval = setInterval(fetchAllPrices, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
   }, []);
 
@@ -91,7 +105,7 @@ export default function Index() {
             <Button
               variant="outline"
               className="glass-card"
-              onClick={fetchPrices}
+              onClick={fetchAllPrices}
               disabled={isLoading}
             >
               <RefreshCwIcon size={16} className="mr-2" />
@@ -101,13 +115,13 @@ export default function Index() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {CRYPTO_DATA.map((crypto, index) => (
+          {CRYPTO_DATA.map((crypto) => (
             <PriceCard
               key={crypto.symbol}
               symbol={crypto.symbol}
               name={crypto.name}
-              price={prices[index]?.toFixed(2) || "0.00"}
-              priceChange={Math.random() * 10 * (Math.random() > 0.5 ? 1 : -1)} // Mock price change
+              price={prices[crypto.symbol]?.toFixed(2) || "0.00"}
+              priceChange={Math.random() * 10 * (Math.random() > 0.5 ? 1 : -1)}
               isLoading={isLoading}
             />
           ))}
