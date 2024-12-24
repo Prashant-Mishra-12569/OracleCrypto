@@ -29,6 +29,8 @@ export default function Index() {
   const fetchPrices = async () => {
     try {
       setIsLoading(true);
+      if (!window.ethereum) throw new Error("Please install MetaMask");
+      
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
       const priceData = await contract.getAllPrices();
