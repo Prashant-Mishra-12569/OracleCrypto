@@ -15,8 +15,8 @@ contract CryptoPriceFeed {
         btcPriceFeed = AggregatorV3Interface(0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43);
         ethPriceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
         linkPriceFeed = AggregatorV3Interface(0xc59E3633BAAC79493d908e63626716e204A45EdF);
-        bnbPriceFeed = AggregatorV3Interface(0x2B396ff5c5A1631e0bCcc8E3114E74B37E536526);
-        ltcPriceFeed = AggregatorV3Interface(0x6AF09872F9901dfC3f3b6638c5CD76d8EE32E478);
+        bnbPriceFeed = AggregatorV3Interface(0x2b396ff5C5A1631E0BCCc8e3114E74B37e536526);
+        ltcPriceFeed = AggregatorV3Interface(0x6Af09872f9901dfC3F3b6638C5cD76d8eE32e478);
     }
 
     function getAllPrices() public view returns (
